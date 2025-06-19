@@ -1,4 +1,4 @@
-from flask import Flask, request, send_from_directory, jsonify, abort
+from flask import Flask, request, send_from_directory, jsonify
 import os
 
 app = Flask(__name__)
@@ -29,7 +29,7 @@ def upload_video():
     destino = os.path.join(PASTA_DOWNLOADS, nome_seguro)
 
     if os.path.exists(destino):
-        return jsonify({"error": "Arquivo já existe no servidor"}), 409  # conflito
+        return jsonify({"error": "Arquivo já existe no servidor"}), 409
 
     try:
         arquivo.save(destino)
@@ -59,5 +59,4 @@ def delete_video(filename):
         return jsonify({"error": f"Erro ao excluir arquivo: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    # Pode ajustar porta e debug aqui
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
