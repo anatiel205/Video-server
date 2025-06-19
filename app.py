@@ -3,7 +3,7 @@ from flask import Flask, send_from_directory, abort
 
 app = Flask(__name__)
 
-PASTA_VIDEOS = "Vídeos_teste"
+PASTA_VIDEOS = "Videos_test"
 
 @app.route("/")
 def home():
