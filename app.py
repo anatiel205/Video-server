@@ -1,45 +1,53 @@
 import os
-from flask import Flask, request, abort, jsonify, send_from_directory
+from flask import Flask, request, send_from_directory, abort, jsonify
 
+# --- Configurações ---
+PASTA_DOWNLOADS = "Videos_test"
+PORTA = int(os.environ.get("PORT", 10000))
+
+# --- Inicialização do app Flask ---
 app = Flask(__name__)
 
-PASTA_VIDEOS = "Videos_test"
+# --- Garantir que a pasta de vídeos existe ---
+os.makedirs(PASTA_DOWNLOADS, exist_ok=True)
 
+# --- Rota inicial ---
 @app.route("/")
 def home():
-    return "Servidor de Vídeos Online!"
+    return "🎥 Servidor de Vídeos está Online!"
 
+# --- Rota para servir vídeos publicamente ---
 @app.route("/videos/<path:filename>")
 def serve_video(filename):
     if ".." in filename or filename.startswith("/"):
-        abort(400)
-    caminho = os.path.join(PASTA_VIDEOS, filename)
+        abort(400)  # evitar tentativa de acesso indevido
+    caminho = os.path.join(PASTA_DOWNLOADS, filename)
     if not os.path.isfile(caminho):
         abort(404)
-    return send_from_directory(PASTA_VIDEOS, filename)
+    return send_from_directory(PASTA_DOWNLOADS, filename)
 
-# Nova rota para upload de vídeo
+# --- Rota para upload de vídeos via POST (usada pelo bot) ---
 @app.route("/upload_video", methods=["POST"])
 def upload_video():
     if "file" not in request.files:
-        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+        return jsonify({"error": "Arquivo não enviado"}), 400
+
     arquivo = request.files["file"]
-    if arquivo.filename == "":
-        return jsonify({"error": "Nome do arquivo inválido"}), 400
-    
-    # Segurança: evitar path traversal
-    if ".." in arquivo.filename or arquivo.filename.startswith("/"):
-        return jsonify({"error": "Nome de arquivo inválido"}), 400
+    filename = arquivo.filename
 
-    # Salvar arquivo na pasta dos vídeos
-    destino = os.path.join(PASTA_VIDEOS, arquivo.filename)
-    arquivo.save(destino)
+    if not filename.lower().endswith(".mp4"):
+        return jsonify({"error": "Apenas arquivos mp4 são aceitos"}), 400
 
-    return jsonify({"mensagem": "Arquivo enviado com sucesso", "filename": arquivo.filename})
+    try:
+        os.makedirs(PASTA_DOWNLOADS, exist_ok=True)
+        destino = os.path.join(PASTA_DOWNLOADS, filename)
+        arquivo.save(destino)
+        print(f"✅ Vídeo salvo com sucesso: {destino}")
+        return jsonify({"message": "Upload realizado com sucesso"}), 200
+    except Exception as e:
+        print(f"[❌] Erro ao salvar o vídeo: {e}")
+        return jsonify({"error": "Erro interno ao salvar o vídeo"}), 500
 
+# --- Execução ---
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    if not os.path.exists(PASTA_VIDEOS):
-        os.makedirs(PASTA_VIDEOS)
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=PORTA)
